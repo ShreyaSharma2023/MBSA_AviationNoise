@@ -6,7 +6,7 @@
     import buffer from '@turf/buffer';
     import {point} from '@turf/helpers';
     import PanelComponent from '../lib/dataVisComponents/panel.svelte';
-    import FloatingTooltipComponent from '../lib/tooltipComponent/FloatingTooltipComponent.svelte';
+   
     import BaseMap from "$lib/mapComponents/BaseMap.svelte";
 
     mapboxgl.accessToken = "pk.eyJ1IjoicmZpb3Jpc3RhIiwiYSI6ImNsdWQwcDd0aDFkengybG85eW00eDJqdzEifQ.smRFd5P2IKrDHr5HGsfrGw";
@@ -90,8 +90,6 @@
         class="baseMap"
         bind:this={baseMap}
         bind:municipalities={municipalities}
-        bind:stations={stations}
-        bind:selectedStations={selectedStations}
         bind:selectedMunicipality={selectedMunicipality}
         bind:guidedMode={guidedMode}
         bind:parcelFiles={parcelFiles}
@@ -100,7 +98,6 @@
 />
 
 {#key explorationMode}
-    {#if !explorationMode}
         <button on:click={deselectAll} class="floating-x">
             <img src="/artwork/refresh-ccw.svg" alt="Reset and go back to the top" class="reset-icon" />
         </button>
@@ -127,17 +124,6 @@
                     bind:value={value}
             />
         </div>
-    {:else }
-        {#key selectedStations}
-            {#if selectedStations.length === 2}
-                <FloatingTooltipComponent
-                    bind:municipality={selectedMunicipality}
-                    bind:stations={selectedStations}
-                    bind:zoningAndCensusFiles={zoningAndCensusFiles}
-                />
-            {/if}
-        {/key}
-    {/if}
 {/key}
 
 <style>

@@ -8,17 +8,33 @@
         autoPlacement,
         offset,
     } from '@floating-ui/dom';
+    import AircraftAnimation from '../aircraftComponents/Aircraft.svelte'; // New Import for MBSA
 
     mapboxgl.accessToken = "pk.eyJ1IjoicmZpb3Jpc3RhIiwiYSI6ImNsdWQwcDd0aDFkengybG85eW00eDJqdzEifQ.smRFd5P2IKrDHr5HGsfrGw";
 
+    let showAircraftAnimation = true;
+    // Define a flight path - customize this based on your needs
+    const flightPath = [
+        // Starting from what appears to be Logan Airport
+        [-71.0202, 42.3643], // Logan Airport
+        [-71.0502, 42.3843], // Point 1
+        [-71.0802, 42.4043], // Point 2
+        [-71.1102, 42.3943], // Point 3
+        [-71.1402, 42.3743], // Point 4
+        [-71.1702, 42.3543], // Point 5
+        [-71.2002, 42.3443], // Point 6
+        [-71.0202, 42.3643]  // Back to Logan
+    ];
+    // Function to start/stop the aircraft animation
+    function toggleAircraftAnimation() {
+        showAircraftAnimation = !showAircraftAnimation;
+    }
+
     let map;
     let mapViewChanged = 0;
-    export let bounds = [];
-    export let stations = [];
+
     export let municipalities = [];
-    export let selectedStations = [];
     export let selectedMunicipality = null;
-    export let guidedMode = true;
     export let comparisonMode = false;
     export let explorationMode = false;
     export let parcelFiles = [];
@@ -35,8 +51,8 @@
     const overallCenter = [-71.05672511293635, 42.35885643076469]
     const overallZoom = 9
 
-    const baseCenter = [-72.29451, 42.36027];
-    const baseZoom = 8;
+    const baseCenter = [-71.29451, 42.36027];
+    const baseZoom = 10;
 
     onMount(async () => {
         map = new mapboxgl.Map({
@@ -45,7 +61,7 @@
             zoom: baseZoom,
             style: 'mapbox://styles/smpeter/cluqd5hft05en01qqc4mxa1kd',
             attributionControl: false,
-            interactive: false
+            interactive: true
         });
 
         await new Promise(resolve => map.on("load", resolve));
@@ -55,15 +71,16 @@
             data: "/data/mbta_community_lines.geojson",
         });
 
-        map.addLayer({
-            id: "MAMBTALines",
-            type: "line",
-            source: "MBTALines",
-            paint: {
-                "line-color": ["get", "route_color"],
-                "line-width": 2,
-            },
-        });
+        // Add a button to toggle the animation
+        const toggleButton = document.createElement('button');
+        toggleButton.textContent = 'Toggle Flight Animation';
+        toggleButton.className = 'mapboxgl-ctrl mapboxgl-ctrl-group aircraft-toggle-btn';
+        toggleButton.onclick = toggleAircraftAnimation;
+        
+        const customControl = document.createElement('div');
+        customControl.className = 'mapboxgl-ctrl-top-right';
+        customControl.appendChild(toggleButton);
+        map.getContainer().appendChild(customControl);
     })
 
     $: map?.on("move", evt => mapViewChanged++);
@@ -99,12 +116,6 @@
         return {cx: x, cy: y};
     }
 
-    function flushSelectedStations() {
-        selectedStations.forEach(station => {
-            toggleStation(station);
-        });
-        selectedStations = [];
-    }
 
     function zoomToEntireMap(withSidePanel=true) {
         if (withSidePanel) {
@@ -128,56 +139,6 @@
         });
     }
 
-    function zoomToStation(station) {
-        const bounds = calculateBoundingBox({type:'Polygon', coordinates: [station.getBuffer(0.5)]});
-
-        fitBounds(bounds, {
-            padding: {top: 20, bottom: 20, left: 1000, right: 20}
-        });
-    }
-
-    function shouldToggleStation(station) {
-        if (selectedMunicipality) {
-            console.log("Municipality is selected");
-            if (guidedMode && !comparisonMode) {
-                console.log("We are in guided mode without comparison");
-                console.log(!selectedStations.some(s => s.Name === station.Name));
-                console.log(selectedStations.length < 1)
-                return !selectedStations.some(s => s.Name === station.Name) && selectedStations.length < 1;
-            } else if (guidedMode && comparisonMode || explorationMode) {
-                console.log("We are in guided mode WITH comparison");
-                console.log(selectedStations.some(s => s.Name === station.Name));
-                console.log(selectedStations.length < 2);
-                return selectedStations.some(s => s.Name === station.Name) || selectedStations.length < 2;
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
-    }
-
-    function toggleStation(station) {
-        console.log(`Toggle station ${station}`);
-        if (shouldToggleStation(station)) {
-            console.log(`Toggling station ${station.Name}`);
-            if (selectedStations.some(s => s.Name === station.Name)) {
-                console.log(`Removing station ${station.Name} from selected stations`);
-                selectedStations = selectedStations.filter(s => s.Name !== station.Name);
-            } else {
-                console.log(`Adding station ${station.Name} to selected stations`);
-                selectedStations = [...selectedStations, station];
-
-                if (guidedMode && !comparisonMode && !explorationMode) {
-                    console.log(`Zooming to station ${station.Name}`);
-                    zoomToStation(station);
-                }
-            }
-            toggleStationParcels(station);
-        } else {
-            console.log("No toggling of station possible.");
-        }
-    }
 
     let loadedParcels = [];
 
@@ -219,27 +180,13 @@
     //
     $: {
         if (selectedMunicipality) {
-            flushSelectedStations();
+            
             zoomToMunicipality(selectedMunicipality);
         } else {
 
         }
     }
 
-    $: {
-        if (guidedMode && !comparisonMode && selectedStations.length > 0) {
-            if (selectedStations.length > 1) {
-                const last_station = selectedStations.pop();
-                console.log("TRALALALA")
-                console.log(selectedStations);
-                selectedStations.forEach(station => {
-                    toggleStationParcels(station);
-                });
-                selectedStations = [last_station];
-            }
-            zoomToStation(selectedStations[0]);
-        }
-    }
 
     $: {
         if (comparisonMode && selectedMunicipality) {
@@ -257,7 +204,6 @@
             map.doubleClickZoom.enable();
             map.touchZoomRotate.enable();
             map.addControl(new mapboxgl.NavigationControl());
-            flushSelectedStations();
             selectedMunicipality = undefined;
             zoomToEntireMap(false);
         }
@@ -266,10 +212,6 @@
     $: filteredMunicipalities = (selectedMunicipality && !explorationMode) ? municipalities.filter(m => {
         return m.Name == selectedMunicipality.Name
     }) : municipalities;
-
-    $: filteredStations = selectedMunicipality ? stations.filter(s => {
-        return s.Community == selectedMunicipality.Name
-    }) : stations;
 
     async function dotInteraction (index, evt) {
         let hoveredDot = evt.target;
@@ -358,32 +300,18 @@
                     {/each}
                 {/if}
             {/each}
-            {#each filteredStations as station, index (station.Name)}
-                <polygon
-                        class:station
-                        class:selected={selectedStations.some(s => s.Name === station.Name)}
-                        data-station-name={station.Name}
-                        points={projectPolygonCoordinates(station.getBuffer(
-                            selectedStations.some(s => s.Name === station.Name) || !selectedMunicipality ?
-                            0.5 :
-                            0.1
-                        ))}
-                        fill={selectedStations.some(s => s.Name === station.Name) ? '#629681' : '#05515e'}
-                        stroke="black"
-                        stroke-width="1"
-                        opacity={selectedStations.some(s => s.Name === station.Name) || (!selectedStations.length > 0) ? '0.8' : '0.5'}
-                        role="button"
-                        tabindex="0"
-                        aria-label={`Select station ${station.Name}`}
-                        on:click={() => toggleStation(station)}
-                        on:keyup={event => event.key === 'Enter' && toggleStation(station)}
-                >
-                    <title>{station.Name}</title>
-                </polygon>
-            {/each}
         {/key}
     </svg>
 </div>
+
+<!-- Add the aircraft animation component -->
+{#if map}
+    <AircraftAnimation 
+        {map} 
+        active={showAircraftAnimation} 
+        flightPath={flightPath}
+    />
+{/if}
 
 <dl class="info"
     hidden={!showTooltip}
@@ -396,6 +324,21 @@
 
 <style>
     @import url("$lib/global.css");
+
+    /* Your existing styles */
+    
+    :global(.aircraft-toggle-btn) {
+        margin: 10px;
+        padding: 8px 16px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    :global(.aircraft-toggle-btn:hover) {
+        background-color: #f0f0f0;
+    }
 
     #map {
         flex: 1;
@@ -414,18 +357,6 @@
             cursor: pointer;
         }
 
-        .station {
-            pointer-events: auto;
-            cursor: pointer;
-            fill-opacity: 60%;
-            stroke: white;
-            fill: #05515e;
-        }
-        .station.selected {
-            /* Styles for selected stations */
-            fill: #629681;
-            opacity: 0.8;
-        }
     }
 
     dl.info {
