@@ -5,9 +5,9 @@
 
 {#if (active)}
     <div class="slide">
-        <h1>MARGINAL OR MEANINGFUL?</h1>
-        <h2>An immersive tool for exploring the impacts of the MBTA Communities Act</h2>
-        <p>- Amelia Baum, Riccardo Fiorista, and Simone Peter -</p>
+        <h1>Noisy Landings</h1>
+        <h2>A tool for understanding Aviation's impact on the Boston Housing market</h2>
+        <p>- Kailey Bridgeman, Andrew Grabowski, Marco Lograno, Shreya Sharma  -</p>
         <div class="scroll-indicator"></div>
     </div>
 {/if}

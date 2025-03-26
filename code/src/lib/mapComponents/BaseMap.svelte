@@ -3,12 +3,13 @@
     import "../../../node_modules/mapbox-gl/dist/mapbox-gl.css";
     import { onMount } from "svelte";
     import {calculateBoundingBox} from "$lib/mapComponents/mapUtils.js";
+    import AircraftAnimation from "$lib/aircraftComponents/Aircraft.svelte"; // New Import for MBSA
     import {
         computePosition,
         autoPlacement,
         offset,
     } from '@floating-ui/dom';
-    import AircraftAnimation from '../aircraftComponents/Aircraft.svelte'; // New Import for MBSA
+    
 
     mapboxgl.accessToken = "pk.eyJ1IjoicmZpb3Jpc3RhIiwiYSI6ImNsdWQwcDd0aDFkengybG85eW00eDJqdzEifQ.smRFd5P2IKrDHr5HGsfrGw";
 
