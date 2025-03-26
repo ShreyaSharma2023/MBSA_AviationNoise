@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { tweened } from 'svelte/motion';
-  import { cubicOut } from 'svelte/easing';
+  import { cubicInOut } from 'svelte/easing'; // Changed to cubicInOut for smoother acceleration/deceleration
   import { getCompleteRoute, loganAirport } from './AirportRoutes.js';
 
   export let map; // Reference to the Mapbox map
@@ -18,13 +18,15 @@
   let currentPathIndex = 0;
   let isAtAirport = false;
   
-  // Dynamic duration - slower when near airport, faster for en-route
-  $: segmentDuration = isNearAirport(currentPathIndex) ? 5000 : 2000;
+  // Use consistent duration for smoother movement
+  const normalFlightDuration = 1000; // 3 seconds between regular points
+  const airportApproachDuration = 2000; // 6 seconds when near airport
+  const waitAtAirportDuration = 1000; // 5 seconds pause at airport
   
-  // Create tweened values for smooth animation
+  // Create tweened values for smooth animation with better easing
   const aircraftPosition = tweened(flightPath[0], {
-    duration: segmentDuration,
-    easing: cubicOut
+    duration: normalFlightDuration,
+    easing: cubicInOut // Smoother acceleration/deceleration curve
   });
   
   function isNearAirport(index) {
@@ -63,6 +65,7 @@
     return bearing;
   }
   
+  // Smoothly animate between points without the jerky pauses
   function animateToNextPoint() {
     if (!map) return;
     
@@ -70,11 +73,11 @@
     if (currentPathIndex >= flightPath.length - 1) {
       console.log("Flight completed");
       
-      // Optionally restart after a delay
+      // Restart after a delay
       setTimeout(() => {
         currentPathIndex = 0;
         animateToNextPoint();
-      }, 5000);
+      }, 3000);
       return;
     }
     
@@ -85,10 +88,10 @@
     // Calculate bearing for aircraft rotation
     const bearing = calculateBearing(currentPoint, nextPoint);
     
-    // Update aircraft rotation - different appearance when on ground vs. in air
+    // Update aircraft rotation - smoother transition
     if (aircraftElement) {
-      // Slower rotation when at airport
-      aircraftElement.style.transition = `transform ${isAtAirport ? 1.5 : 0.3}s ease-out`;
+      // More gradual rotation transition
+      aircraftElement.style.transition = `transform 1.5s ease-in-out`;
       
       // Rotate the aircraft in the direction of movement
       aircraftElement.style.transform = `rotate(${bearing}deg)`;
@@ -101,17 +104,21 @@
       }
     }
     
+    // Determine appropriate duration for this segment
+    const isNearAirportNext = isNearAirport(nextIndex);
+    const duration = isNearAirportNext ? airportApproachDuration : normalFlightDuration;
+    
     // Animate to next point with appropriate duration
-    aircraftPosition.set(nextPoint, { duration: isNearAirport(nextIndex) ? 5000 : 2000 }).then(() => {
+    aircraftPosition.set(nextPoint, { duration, easing: cubicInOut }).then(() => {
       currentPathIndex = nextIndex;
       
       // Determine if aircraft is at the airport
-      if (isNearAirport(currentPathIndex)) {
-        console.log("Aircraft is at/near airport");
-        // Add delay when at airport
-        setTimeout(animateToNextPoint, isAtAirport ? 3000 : 100);
+      if (isAtAirport) {
+        // Add longer delay when at airport
+        setTimeout(animateToNextPoint, waitAtAirportDuration); 
       } else {
-        setTimeout(animateToNextPoint, 100); // Normal transition between segments
+        // No pause between segments - immediately start next animation
+        animateToNextPoint();
       }
     });
   }
@@ -136,10 +143,10 @@
     
     // Use emoji for plane
     el.innerHTML = '✈️';
-    el.style.fontSize = '38px'; // Slightly smaller
+    el.style.fontSize = '38px';
     el.style.position = 'absolute';
     el.style.zIndex = '9999';
-    el.style.transition = 'transform 0.3s ease-out';
+    el.style.transition = 'transform 1.5s ease-in-out'; // Smoother rotation transitions
     
     // Add to map
     map.getCanvasContainer().appendChild(el);
@@ -148,7 +155,7 @@
     console.log("Aircraft element created");
   }
   
-  // Update aircraft position on the map
+  // Update aircraft position on the map - smooth positioning
   $: if (map && aircraftElement && $aircraftPosition) {
     const point = map.project($aircraftPosition);
     aircraftElement.style.left = `${point.x - 15}px`; // Center horizontally
