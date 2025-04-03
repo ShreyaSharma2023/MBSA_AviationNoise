@@ -9,7 +9,7 @@
    
     import BaseMap from "$lib/mapComponents/BaseMap.svelte";
 
-    mapboxgl.accessToken = "pk.eyJ1IjoicmZpb3Jpc3RhIiwiYSI6ImNsdWQwcDd0aDFkengybG85eW00eDJqdzEifQ.smRFd5P2IKrDHr5HGsfrGw";
+    mapboxgl.accessToken = "pk.eyJ1IjoiYWdyYWJvd3MiLCJhIjoiY205MXBkaTEyMDNobjJzcHdyNjczOHY1ZiJ9.YUk31iaej90fE7REWALCLQ"; // Andrew's Token which should be changed
 
     let baseMap;
     let stations = [];

@@ -148,5 +148,6 @@ export function getCompleteRoute(routeName, waitAtAirport = true) {
   return [...arrival, ...waitingPoints, ...departure.slice(1)];
 }
 
+
 // Usage example:
 // const completeRoute = getCompleteRoute('westArrival');
