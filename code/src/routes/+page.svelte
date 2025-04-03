@@ -18,7 +18,7 @@
     let selectedMunicipality;
     let municipalities = [];
     let selectedStations = [];
-    let guidedMode = true;
+    let guidedMode = false;
     let comparisonMode = false;
     let explorationMode = false;
 
@@ -83,14 +83,7 @@
 />
 
 {#key explorationMode}
-        <button on:click={deselectAll} class="floating-x">
-            <img src="/artwork/refresh-ccw.svg" alt="Reset and go back to the top" class="reset-icon" />
-        </button>
-
-        <div class="panel-container">
-            <button on:click={deselectAll} class="floating-x">
-                <img src="/artwork/refresh-ccw.svg" alt="Reset and go back to the top" class="reset-icon" />
-            </button>
+        <!--<div class="panel-container">
             <div class="progress-bar" style="position: absolute;">
                 {#each [0, 1, 2, 3, 4, 5, 6, 7, 8] as slideIndex}
                     <div class="circle {value === slideIndex ? 'active' : ''}"></div>
@@ -108,7 +101,7 @@
                     bind:resetScroll={resetScroll}
                     bind:value={value}
             />
-        </div>
+        </div> -->
 {/key}
 
 <style>
