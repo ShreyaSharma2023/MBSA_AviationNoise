@@ -63,21 +63,4 @@
     @import url("$lib/slide.css");
     @import url("$lib/arrow.css");
 
-    .footnotes {
-        font-size: smaller;
-        border-top: 1px solid #ccc;
-        padding-top: 5px;
-    }
-
-    .footnotes ol {
-        padding-left: 0;
-    }
-
-    .footnotes li {
-        list-style: none; /* Removes default list styling */
-    }
-
-    .footnotes sup a {
-        text-decoration: none;
-    }
 </style>

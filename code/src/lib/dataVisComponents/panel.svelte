@@ -15,11 +15,7 @@
     export let resetScroll;
     export let municipalities;
     export let selectedMunicipality;
-    export let zoningAndCensusFiles;
     export let selectedStations;
-    export let guidedMode;
-    export let comparisonMode;
-    export let explorationMode;
 
     $: if (value === 0) {
         resetScroll = false;
@@ -76,14 +72,6 @@
         scrollToSlide(value_scroll_station)
     }
 
-    // Reactive statement to handle changes
-    // $: if (scrollyComponent) {
-    // Logic to move to the next slide, ensuring it does not exceed total slides
-    //   value = (value + 1) % 8; // Replace 'slides.length' with your total number of slides
-    //   scrollToSlide(value);
-    //   scrollyComponent = 0;
-    // }
-
     // Function to scroll to a particular slide
     function scrollToSlide(slideIndex, callback) {
         console.log("Scrolling to slide called", slideIndex);
@@ -104,24 +92,6 @@
 
     $: console.log('Current slide index (value):', value);
 
-    // let value_slide2;
-    // $: {
-    //     if (!selectedMunicipality) {
-    //         value_slide2 = 2;
-    //     }
-    //     else {
-    //         value_slide2 = false;
-    //     }
-    // }
-    // $: showSlides = {
-    //     S1: false,
-    //     S11: false,
-    //     S2: false,
-    //     S21: false,
-    //     S3: false,
-    //     S4: false,
-    //     S6: false,
-    // }
 
 
 </script>
@@ -138,16 +108,6 @@
         <Slide12 active={value === 2} bind:value={value}/>
         <Slide2 active={isSlide2Active} bind:municipalities={municipalities}
                 bind:selectedMunicipality={selectedMunicipality}/>
-        <Slide21 active={value === 4} bind:municipality={selectedMunicipality} bind:station={firstStation} bind:value={value}/>
-        <!-- <Slide3 active={value === 4}  bind:municipality={selectedMunicipality} bind:station={firstStation}/> -->
-        <Slide4 active={value === 5} bind:municipality={selectedMunicipality} bind:station={firstStation} bind:value={value}/>
-        <Slide5 active={value === 6} bind:municipality={selectedMunicipality} bind:station={firstStation} bind:value={value}/>
-        <!--        <Slide51 active={value === 7}  bind:municipality={selectedMunicipality} bind:station={firstStation} zoningAndCensusFiles={zoningAndCensusFiles}/>-->
-        <Slide6 active={value === 7} bind:municipality={selectedMunicipality} bind:stations={selectedStations}
-                bind:comparisonMode={comparisonMode} zoningAndCensusFiles={zoningAndCensusFiles} bind:value={value}/>
-        <Slide7 active={value === 8} bind:guidedMode={guidedMode} bind:comparisonMode={comparisonMode}
-                bind:explorationMode={explorationMode} bind:value={value}/>
-        <!--        <Slide8 active={value === 9} />-->
     </Scrolly>
 </div>
 
@@ -175,17 +135,6 @@
         display: none;
     }
 
-    h1 {
-        font-weight: normal;
-    }
-
-    h2 {
-        font-weight: normal;
-    }
-
-    h3 {
-        font-weight: normal;
-    }
 
     /* .step {
 		height: 80vh;
