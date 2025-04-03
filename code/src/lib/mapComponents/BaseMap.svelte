@@ -72,16 +72,6 @@
             data: "/data/mbta_community_lines.geojson",
         });
 
-        // Add a button to toggle the animation
-        const toggleButton = document.createElement('button');
-        toggleButton.textContent = 'Toggle Flight Animation';
-        toggleButton.className = 'mapboxgl-ctrl mapboxgl-ctrl-group aircraft-toggle-btn';
-        toggleButton.onclick = toggleAircraftAnimation;
-        
-        const customControl = document.createElement('div');
-        customControl.className = 'mapboxgl-ctrl-top-right';
-        customControl.appendChild(toggleButton);
-        map.getContainer().appendChild(customControl);
     })
 
     $: map?.on("move", evt => mapViewChanged++);
@@ -262,7 +252,7 @@
                                 municipality.Geometries.coordinates.length ?
                                 projectPolygonCoordinates(municipality.Geometries.coordinates[0]) : ""
                             }
-                            fill="#a9987a"
+                            fill="#3498db"
                             stroke="black"
                             stroke-width="1"
                             opacity={municipality.Name == selectedMunicipality?.Name ? '0.6' : (!explorationMode ? '0.5' : '0.3')}
@@ -284,7 +274,7 @@
                                     municipality.Geometries.coordinates.length ?
                                     projectPolygonCoordinates(geometry[0]) : ""
                                 }
-                                fill="#a9987a"
+                                fill="#3498db"
                                 stroke="black"
                                 stroke-width="1"
                                 opacity={municipality.Name == selectedMunicipality?.Name ? '0.6' : (!explorationMode ? '0.5' : '0.3')}
@@ -343,6 +333,9 @@
 
     #map {
         flex: 1;
+        filter: hue-rotate(30deg); /* Green tint Change this if you want true color!!!!!*/
+
+        
     }
 
     #map svg {
