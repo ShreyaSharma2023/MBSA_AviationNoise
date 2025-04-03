@@ -26,25 +26,10 @@
     let value = 0;
 
     onMount(async () => {
-        let loadedStations = await d3.json("/data/mbta_community_stops.geojson");
         let loadedMunicipalities = await d3.json("/data/mbta_municipalities.geojson");
         let loadedParcelFiles = await d3.csv("/data/parcels/merged_file_name_reference.csv");
         let loadedZoningAndCensusData = await d3.csv("/data/stop_zones/file_name_reference.csv")
 
-        stations = loadedStations.features.map(station => {
-            return {
-                Lat: station.geometry.coordinates[1],
-                Long: station.geometry.coordinates[0],
-                Community: station.properties.community,
-                Name: station.properties.stop_name,
-                Routes: station.properties.routes,
-                RouteColors: station.properties.route_colors,
-                Type: station.properties.mbta_comm_type,
-                getBuffer: function (radius) {
-                    return buffer(point([this.Long, this.Lat]), radius, {units: 'miles'}).geometry.coordinates[0];
-                }
-            };
-        });
 
         municipalities = loadedMunicipalities.features.map(municipality => {
             let newMunicipality = {};
