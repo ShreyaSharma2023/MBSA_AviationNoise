@@ -67,11 +67,6 @@
 
         await new Promise(resolve => map.on("load", resolve));
 
-        map.addSource("MBTALines", {
-            type: "geojson",
-            data: "/data/mbta_community_lines.geojson",
-        });
-
     })
 
     $: map?.on("move", evt => mapViewChanged++);

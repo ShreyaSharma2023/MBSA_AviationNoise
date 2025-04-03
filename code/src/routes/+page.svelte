@@ -26,29 +26,9 @@
     let value = 0;
 
     onMount(async () => {
-        let loadedMunicipalities = await d3.json("/data/mbta_municipalities.geojson");
         let loadedParcelFiles = await d3.csv("/data/parcels/merged_file_name_reference.csv");
-        let loadedZoningAndCensusData = await d3.csv("/data/stop_zones/file_name_reference.csv")
 
-
-        municipalities = loadedMunicipalities.features.map(municipality => {
-            let newMunicipality = {};
-            newMunicipality.Geometries = {};
-
-            if (municipality.geometry && Array.isArray(municipality.geometry.coordinates[0])) {
-                newMunicipality.Geometries = municipality.geometry;
-            } else {
-
-            }
-
-            newMunicipality.Name = municipality.properties.community;
-            newMunicipality.TotalHousingUnits = municipality.properties.housing_units_2020;
-            newMunicipality.PopulationSize = municipality.properties.pop2020;
-            newMunicipality.MBTACommunityType = municipality.properties.mbta_comm_type;
-            newMunicipality.MinHousingCapacityRequirement = municipality.properties.min_rf1_cap_req;
-            return newMunicipality;
-        })
-
+    
         parcelFiles = loadedParcelFiles.map(entry => {
             let newParcelFile = {};
             newParcelFile.StopName = entry.StopName;
@@ -56,12 +36,6 @@
             return newParcelFile;
         });
 
-        zoningAndCensusFiles = loadedZoningAndCensusData.map(entry => {
-            let newParcelFile = {};
-            newParcelFile.StopName = entry.StopName;
-            newParcelFile.FileName = entry.FileName;
-            return newParcelFile;
-        });
     })
 
     function deselectAll(e) {

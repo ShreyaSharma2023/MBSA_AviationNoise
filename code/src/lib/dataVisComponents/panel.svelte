@@ -5,14 +5,6 @@
     import Slide11 from "../../slides/Slide1.1.svelte";
     import Slide12 from "../../slides/Slide1.2.svelte";
     import Slide2 from "../../slides/Slide2.svelte";
-    import Slide21 from "../../slides/Slide2.1.svelte";
-    import Slide3 from "../../slides/Slide3.svelte";
-    import Slide4 from "../../slides/Slide4.svelte";
-    import Slide5 from "../../slides/Slide5.svelte";
-    // import Slide51 from "../../slides/Slide5.1.svelte";
-    import Slide6 from "../../slides/Slide6.svelte";
-    import Slide7 from "../../slides/Slide7.svelte";
-    // import Slide8 from "../../slides/Slide8.svelte";
 
     import { tick } from "svelte";
     import { onMount } from 'svelte';
@@ -22,7 +14,6 @@
     export let value;
     export let resetScroll;
     export let municipalities;
-    export let stations;
     export let selectedMunicipality;
     export let zoningAndCensusFiles;
     export let selectedStations;
