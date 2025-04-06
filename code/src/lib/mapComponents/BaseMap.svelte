@@ -80,157 +80,11 @@
         map.fitBounds(bounds, padding);
     }
 
-    function projectPolygonCoordinates(coordinates) {
-        return coordinates.map(coord => {
-            let { cx, cy } = getCoords({ Lat: coord[1], Long: coord[0] });
-            return `${cx},${cy}`;
-        }).join(' ');
-    }
-
-    function getCoords(station) {
-
-        const longitude = parseFloat(station.Long);
-        const latitude = parseFloat(station.Lat);
-
-        if (isNaN(longitude) || isNaN(latitude)) {
-            console.error("Invalid coordinates for station:", station);
-            return { cx: 0, cy: 0 }; // You might want to handle this case differently
-        }
-
-        let point = new mapboxgl.LngLat(longitude, latitude);
-        let {x, y} = map?.project(point);
-        return {cx: x, cy: y};
-    }
-
-
-    function zoomToEntireMap(withSidePanel=true) {
-        if (withSidePanel) {
-            map?.flyTo({
-                center: baseCenter,
-                zoom: baseZoom
-            })
-        } else {
-            map?.flyTo({
-                center: overallCenter,
-                zoom: overallZoom
-            })
-        }
-
-    }
-
-    function zoomToMunicipality(municipality) {
-        const bounds = calculateBoundingBox(selectedMunicipality?.Geometries);
-        fitBounds(bounds, {
-            padding: explorationMode ? 50 : {top: 20, bottom: 20, left: 1150, right: 20}
-        });
-    }
-
-
-    let loadedParcels = [];
-
-    function toggleStationParcels (station) {
-        if (!loadedParcels.some(s => s.Name === station.Name)) {
-            console.log(`Adding parcel layer for ${station.Name}`)
-            if (parcelFiles.filter(e => e.StopName == station.Name).length > 0) {
-                map.addSource(station.Name, {
-                    type: "geojson",
-                    data: parcelFiles.filter(e => e.StopName == station.Name)[0].FileName,
-                });
-
-                map.addLayer({
-                    id: station.Name,
-                    type: "fill",  // Use 'fill' type for polygon layers
-                    source: station.Name,
-                    paint: {
-                        "fill-color": [
-                            'case',
-                            ["to-boolean", ['get', 'mustUpzone']], '#f39034',  // true
-                            ['!', ["to-boolean", ['get', 'mustUpzone']]], '#789f4f',  // false
-                            '#ffffff'
-                        ],  // Correct property for setting the fill color of polygons
-                        "fill-outline-color": "black"  // Sets the color of the outline
-                    },
-                });
-                loadedParcels.push(station);
-            } else {
-                console.log("Parcel data not available");
-            }
-        } else {
-            console.log("Removing parcel layer")
-            map.removeLayer(station.Name);
-            map.removeSource(station.Name);
-            loadedParcels = loadedParcels.filter(s => s.Name !== station.Name);
-        }
-    }
-
-    //
-    $: {
-        if (selectedMunicipality) {
-            
-            zoomToMunicipality(selectedMunicipality);
-        } else {
-
-        }
-    }
-
-
-    $: {
-        if (comparisonMode && selectedMunicipality) {
-            zoomToMunicipality(selectedMunicipality);
-        }
-    }
-
-    $: {
-        if (explorationMode) {
-            map.boxZoom.enable();
-            map.scrollZoom.enable();
-            map.dragPan.enable();
-            map.dragRotate.enable();
-            map.keyboard.enable();
-            map.doubleClickZoom.enable();
-            map.touchZoomRotate.enable();
-            map.addControl(new mapboxgl.NavigationControl());
-            selectedMunicipality = undefined;
-            zoomToEntireMap(false);
-        }
-    }
-
     $: filteredMunicipalities = (selectedMunicipality && !explorationMode) ? municipalities.filter(m => {
         return m.Name == selectedMunicipality.Name
     }) : municipalities;
 
-    async function dotInteraction (index, evt) {
-        let hoveredDot = evt.target;
-        hoveredIndex = index;
-        if (!selectedMunicipality || explorationMode){
-            if (evt.type === "mouseenter" || evt.type === "focus") {
-                // dot hovered
-                // cursor = {x: evt.x, y: evt.y};
-                showTooltip = true;
-                tooltipPosition = await computePosition(hoveredDot, municipalityTooltip, {
-                    strategy: "fixed", // because we use position: fixed
-                    middleware: [
-                        offset(5), // spacing from tooltipComponent to dot
-                        autoPlacement() // see https://floating-ui.com/docs/autoplacement
-                    ],
-                });
-            }
-            else if (evt.type === "mouseleave" || evt.type === "blur") {
-                // dot unhovered
-                // hoveredIndex = -1;
-                showTooltip = false;
-            }
-            else if (evt.type === "click" || evt.type === "keyup" && evt.key === "Enter") {
-                if (explorationMode && selectedMunicipality && selectedMunicipality.Name === municipalities[index].Name) {
-                    selectedMunicipality = undefined;
-                    showTooltip = true;
-                } else {
-                    selectedMunicipality = municipalities[index];
-                    showTooltip = false;
-                }
-            }
-        }
-    }
+    
 
 </script>
 
@@ -299,14 +153,6 @@
     />
 {/if}
 
-<dl class="info"
-    hidden={!showTooltip}
-    style="top: {tooltipPosition.y}px; left: {tooltipPosition.x}px"
-    bind:this={municipalityTooltip}
-    role="tooltip" >
-    <dt>Municipality</dt>
-    <dd>{ hoveredMunicipality.Name }</dd>
-</dl>
 
 <style>
     @import url("$lib/global.css");
