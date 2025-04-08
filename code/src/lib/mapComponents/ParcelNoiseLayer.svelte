@@ -17,8 +17,55 @@
     let directoryMap = null;
     let currentBatchIndex = 0;
     const BATCH_SIZE = 3; 
-    const DELAY_BETWEEN_TOWNS = 1000; 
-    const DELAY_BETWEEN_BATCHES = 2000; 
+    const DELAY_BETWEEN_TOWNS = 10; 
+    const DELAY_BETWEEN_BATCHES = 20; 
+
+    async function loadSimplifiedNoiseMap() {
+        try {
+            console.log('Loading simplified noise map');
+            
+            // This could be a placeholder until detailed data is loaded
+            map.addSource('simplified-noise', {
+                type: 'geojson',
+                data: {
+                    "type": "FeatureCollection",
+                    "features": []
+                }
+            });
+            
+            map.addLayer({
+                id: 'simplified-noise-layer',
+                type: 'fill',
+                source: 'simplified-noise',
+                paint: {
+                    'fill-color': [
+                        'match',
+                        ['get', 'noiseColor'],
+                        'Pink', colorMapping.Pink,
+                        'Orange', colorMapping.Orange,
+                        'Yellow', colorMapping.Yellow,
+                        'Red', colorMapping.Red,
+                        'transparent' // Default color
+                    ],
+                    'fill-opacity': 0.7,
+                    'fill-outline-color': '#000000'
+                }
+            });
+            
+            // Set cursor to pointer when hovering over parcels
+            map.on('mouseenter', 'simplified-noise-layer', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'simplified-noise-layer', () => {
+                map.getCanvas().style.cursor = '';
+            });
+            
+            console.log('Simplified noise map initialized');
+        } catch (error) {
+            console.error('Error loading simplified noise map:', error);
+        }
+    }
 
     async function loadTownData(townId, files, layerId) {
         const features = [];
@@ -72,6 +119,15 @@
                     }
                 });
                 
+                // Set cursor to pointer for this layer
+                map.on('mouseenter', layerId, () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+
+                map.on('mouseleave', layerId, () => {
+                    map.getCanvas().style.cursor = '';
+                });
+                
                 console.log(`Added layer for town ${townId} with ${features.length} features`);
             } catch (error) {
                 console.error(`Error adding layer for town ${townId}:`, error);
@@ -112,7 +168,10 @@
         
         console.log('Initializing parcel data loading');
         
-       
+        // Add simplified noise layer for immediate display
+        await loadSimplifiedNoiseMap();
+        
+        // Clear any existing detail layers
         for (let i = 0; ; i++) {
             const layerId = `parcels-${i}`;
             if (map.getLayer(layerId)) {
@@ -135,6 +194,8 @@
             loadedTowns = 0;
             currentBatchIndex = 0;
             
+            // Set up click handler before loading data
+            setupParcelClickHandler();
             
             await loadNextBatch();
 
@@ -144,12 +205,81 @@
         }
     }
 
+    function setupParcelClickHandler() {
+        // Popup for displaying parcel information
+        const popup = new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: false
+        });
+
+        // Add click handler for both simplified and detailed views
+        map.on('click', (e) => {
+            // Query both simplified and detailed layers
+            const layers = ['simplified-noise-layer'];
+            
+            // Add all detail layers that might exist
+            for (let i = 0; i < currentBatchIndex; i++) {
+                layers.push(`parcels-${i}`);
+            }
+            
+            // Find the features at click point from all layers
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: layers.filter(layer => map.getLayer(layer))
+            });
+            
+            if (!features.length) {
+                popup.remove();
+                return;
+            }
+            
+            // Get the first clicked feature
+            const feature = features[0];
+            const props = feature.properties;
+            
+            console.log("Clicked feature properties:", props);
+            
+            // Format the properties into HTML
+            let html = '<div class="parcel-popup">';
+            html += `<h3>Parcel Information</h3>`;
+            
+            // Check and format common properties
+            const address = props.SITE_ADDR || props.SITE_ADDR_L || 'Not available';
+            const buildingValue = props.BLDG_VAL ? `$${Number(props.BLDG_VAL).toLocaleString()}` : 'N/A';
+            const landValue = props.LAND_VAL ? `$${Number(props.LAND_VAL).toLocaleString()}` : 'N/A';
+            const totalValue = props.TOTAL_VAL ? `$${Number(props.TOTAL_VAL).toLocaleString()}` : 'N/A';
+            
+            html += `<p><strong>Address:</strong> ${address}</p>`;
+            html += `<p><strong>Building Value:</strong> ${buildingValue}</p>`;
+            html += `<p><strong>Land Value:</strong> ${landValue}</p>`;
+            html += `<p><strong>Total Value:</strong> ${totalValue}</p>`;
+            html += `<p><strong>Noise Level:</strong> ${props.noiseLevel || props.noiseColor || 'N/A'}</p>`;
+            
+            // Add more properties if available
+            if (props.USE_CODE_SYMB) {
+                html += `<p><strong>Property Type:</strong> ${props.USE_CODE_SYMB}</p>`;
+            }
+            if (props.LOT_SIZE) {
+                html += `<p><strong>Lot Size:</strong> ${Number(props.LOT_SIZE).toLocaleString()} sq ft</p>`;
+            }
+            
+            html += '</div>';
+            
+            // Set popup content and location
+            popup
+                .setLngLat(e.lngLat)
+                .setHTML(html)
+                .addTo(map);
+        });
+    }
+
     onMount(() => {
         if (map) {
             if (map.loaded()) {
                 initializeLoading();
             } else {
-                map.on('load', initializeLoading);
+                map.on('load', () => {
+                    initializeLoading();
+                });
             }
         }
     });
@@ -172,4 +302,21 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         z-index: 1000;
     }
-</style> 
+
+    :global(.parcel-popup) {
+        padding: 5px;
+        max-width: 300px;
+        font-family: Arial, sans-serif;
+    }
+
+    :global(.parcel-popup h3) {
+        margin: 0 0 10px 0;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+    }
+
+    :global(.parcel-popup p) {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+</style>
