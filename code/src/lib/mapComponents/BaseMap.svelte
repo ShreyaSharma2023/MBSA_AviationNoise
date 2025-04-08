@@ -9,9 +9,21 @@
         autoPlacement,
         offset,
     } from '@floating-ui/dom';
+    import ParcelNoiseLayer from "./ParcelNoiseLayer.svelte";
     
 
     mapboxgl.accessToken = "pk.eyJ1IjoicmZpb3Jpc3RhIiwiYSI6ImNsdWQwcDd0aDFkengybG85eW00eDJqdzEifQ.smRFd5P2IKrDHr5HGsfrGw";
+
+    // Function to project coordinates to screen space
+    function projectPolygonCoordinates(coordinates) {
+        if (!map) return "";
+        return coordinates
+            .map(coord => {
+                const point = map.project(coord);
+                return `${point.x},${point.y}`;
+            })
+            .join(" ");
+    }
 
     let showAircraftAnimation = true;
     // Define a flight path - customize this based on your needs
@@ -39,6 +51,9 @@
     export let comparisonMode = false;
     export let explorationMode = false;
     export let parcelFiles = [];
+    $: selectedTownId = selectedMunicipality?.TOWN_ID;
+    $: console.log('Selected Municipality:', selectedMunicipality);
+    $: console.log('Selected Town ID:', selectedTownId);
 
     const mapContainerID = "svg-map-container";
 
@@ -60,7 +75,7 @@
             container: 'map',
             center: baseCenter,
             zoom: baseZoom,
-            style: 'mapbox://styles/smpeter/cluqd5hft05en01qqc4mxa1kd',
+            style: 'mapbox://styles/mapbox/dark-v11',  // Dark theme
             attributionControl: false,
             interactive: true
         });
@@ -84,14 +99,28 @@
         return m.Name == selectedMunicipality.Name
     }) : municipalities;
 
-    
+    function dotInteraction(index, evt) {
+        console.log('Event type:', evt.type);
+        console.log('Municipality clicked:', municipalities[index]);
+        if (evt.type === "click") {
+            selectedMunicipality = municipalities[index];
+            console.log('Setting selectedMunicipality to:', selectedMunicipality);
+            console.log('TOWN_ID:', municipalities[index].TOWN_ID);
+        }
+        // Handle hover events
+        if (evt.type === "mouseenter") {
+            hoveredIndex = index;
+        } else if (evt.type === "mouseleave") {
+            hoveredIndex = -1;
+        }
+    }
+
 
 </script>
 
-<div id="map">
-    <svg
-            id={mapContainerID}
-    >
+<div class="map-container">
+    <div id="map"></div>
+    <svg id={mapContainerID} class="overlay">
         {#key mapViewChanged}
             {#each filteredMunicipalities as municipality, index}
                 {#if municipality.Geometries.type === "Polygon"}
@@ -106,12 +135,18 @@
                             stroke-width="1"
                             opacity={municipality.Name == selectedMunicipality?.Name ? '0.6' : (!explorationMode ? '0.5' : '0.3')}
                             class:municipality
-                            on:mouseenter={(evt) => dotInteraction(index, evt)}
-                            on:mouseleave={(evt) => dotInteraction(index, evt)}
-                            on:focus={(evt) => dotInteraction(index, evt)}
-                            on:blur={(evt) => dotInteraction(index, evt)}
-                            on:click={(evt) => dotInteraction(index, evt)}
-                            on:keyup={(evt) => dotInteraction(index, evt)}
+                            on:mouseenter={() => {
+                                console.log('Mouse enter:', municipality.Name);
+                                dotInteraction(index, {type: 'mouseenter'});
+                            }}
+                            on:mouseleave={() => {
+                                console.log('Mouse leave:', municipality.Name);
+                                dotInteraction(index, {type: 'mouseleave'});
+                            }}
+                            on:click={() => {
+                                console.log('Click:', municipality.Name);
+                                dotInteraction(index, {type: 'click'});
+                            }}
                     >
 <!--                        <title> { municipality.Name } </title>-->
                     </polygon>
@@ -128,12 +163,18 @@
                                 stroke-width="1"
                                 opacity={municipality.Name == selectedMunicipality?.Name ? '0.6' : (!explorationMode ? '0.5' : '0.3')}
                                 class:municipality
-                                on:mouseenter={(evt) => dotInteraction(index, evt)}
-                                on:mouseleave={(evt) => dotInteraction(index, evt)}
-                                on:focus={(evt) => dotInteraction(index, evt)}
-                                on:blur={(evt) => dotInteraction(index, evt)}
-                                on:click={(evt) => dotInteraction(index, evt)}
-                                on:keyup={(evt) => dotInteraction(index, evt)}
+                                on:mouseenter={() => {
+                                    console.log('Mouse enter:', municipality.Name);
+                                    dotInteraction(index, {type: 'mouseenter'});
+                                }}
+                                on:mouseleave={() => {
+                                    console.log('Mouse leave:', municipality.Name);
+                                    dotInteraction(index, {type: 'mouseleave'});
+                                }}
+                                on:click={() => {
+                                    console.log('Click:', municipality.Name);
+                                    dotInteraction(index, {type: 'click'});
+                                }}
                         >
 <!--                            <title> { municipality.Name } </title>-->
                         </polygon>
@@ -151,6 +192,7 @@
         active={showAircraftAnimation} 
         flightPath={flightPath}
     />
+    <ParcelNoiseLayer {map} />
 {/if}
 
 
@@ -172,26 +214,33 @@
         background-color: #f0f0f0;
     }
 
-    #map {
-        flex: 1;
-        filter: hue-rotate(30deg); /* Green tint Change this if you want true color!!!!!*/
-
-        
+    .map-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
     }
 
-    #map svg {
+    #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+    }
+
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         pointer-events: none;
-        position: absolute;
         z-index: 2;
         cursor: grab;
+    }
 
-        .municipality {
-            pointer-events: auto;
-            cursor: pointer;
-        }
-
+    .municipality {
+        pointer-events: auto;
+        cursor: pointer;
     }
 
     dl.info {
