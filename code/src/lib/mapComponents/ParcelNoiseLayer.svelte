@@ -6,7 +6,7 @@
 
     const colorMapping = {
         'Pink': '#7e1060',    
-        'Orange': '#39ff14',  //neon green
+        'Orange': '#f9773f',  //neon green
         'Yellow': '#fcc478',  
         'Red': '#b1004d',     
     };
@@ -67,7 +67,7 @@
                             'Red', colorMapping.Red,
                             '#000000'
                         ],
-                        'fill-opacity': 1,
+                        'fill-opacity': .7,
                         'fill-outline-color': '#000000'
                     }
                 });
