@@ -3,6 +3,7 @@
     import mapboxgl from "mapbox-gl";
 
     export let map;
+    import * as d3 from "d3";
 
     const colorMapping = {
         'Pink': '#7e1060',    
@@ -55,10 +56,20 @@
             // Set cursor to pointer when hovering over parcels
             map.on('mouseenter', 'simplified-noise-layer', () => {
                 map.getCanvas().style.cursor = 'pointer';
+                const coordinates = e.lngLat;
+                const noiseLevel = e.features[0].properties.noiseColor;
+
+                // Show tooltip
+                d3.select("#tooltip")
+                    .style("left", `${e.originalEvent.clientX + 10}px`)
+                    .style("top", `${e.originalEvent.clientY + 10}px`)
+                    .style("opacity", 1)
+                    .html(`<strong>Noise Level:</strong> ${noiseLevel}`);
             });
 
             map.on('mouseleave', 'simplified-noise-layer', () => {
                 map.getCanvas().style.cursor = '';
+                d3.select("#tooltip").style("opacity", 0);
             });
             
             console.log('Simplified noise map initialized');
@@ -203,6 +214,60 @@
             console.error('Error initializing parcel data:', error);
             isLoading = false;
         }
+    }
+
+    // Append an SVG overlay inside the map container
+    const svg = d3.select(map.getCanvasContainer())
+        .append("svg")
+        .style("position", "absolute")
+        .style("top", "0px")
+        .style("left", "0px")
+        .style("width", "100%")
+        .style("height", "100%")
+        .style("pointer-events", "none"); // Prevents interference with map interactions
+
+    const brush = d3.brush()
+        .extent([[0, 0], [map.getCanvas().width, map.getCanvas().height]])
+        .on("brush", brushed)
+        .on("end", brushEnded);
+
+    const brushGroup = svg.append("g")
+        .attr("class", "brush")
+        .call(brush);
+
+        brushGroup
+        .style("pointer-events", "none"); // Allows map interaction when not brushing
+
+        brush.on("start", () => brushGroup.style("pointer-events", "all")); // Activate on brush
+        brush.on("end", () => brushGroup.style("pointer-events", "none"));  // Deactivate after brush
+
+    function brushed(event) {
+        const selection = event.selection;
+        if (!selection) return;
+    
+        // Convert screen coordinates to map coordinates
+        const [x0, y0] = selection[0];
+        const [x1, y1] = selection[1];
+
+        const nw = map.unproject([x0, y0]); // Top-left in [lng, lat]
+        const se = map.unproject([x1, y1]); // Bottom-right in [lng, lat]
+
+        console.log("Selected area:", nw, se);
+    }
+
+    function brushEnded(event) {
+        if (!event.selection) {
+            console.log("Brush cleared");
+            return;
+        }
+
+        // Example: Update map source based on the brushed region
+        map.getSource('simplified-noise').setData({
+            "type": "FeatureCollection",
+            "features": [] // Replace with filtered features
+        });
+
+        console.log("Filtered noise map updated");
     }
 
     function setupParcelClickHandler() {
