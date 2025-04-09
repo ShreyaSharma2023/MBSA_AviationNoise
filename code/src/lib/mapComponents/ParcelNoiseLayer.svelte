@@ -307,7 +307,7 @@ function highlightSelectedParcels(selectedFeatures) {
             type: "line",
             source: "selected-parcels",
             paint: {
-                "line-color": "#ff0000",
+                "line-color": "#ffffff",
                 "line-width": 3
             }
         });
