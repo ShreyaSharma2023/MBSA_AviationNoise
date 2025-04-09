@@ -71,7 +71,7 @@
                 map.getCanvas().style.cursor = '';
                 d3.select("#tooltip").style("opacity", 0);
             });
-            
+
             console.log('Simplified noise map initialized');
         } catch (error) {
             console.error('Error loading simplified noise map:', error);
@@ -238,8 +238,81 @@
         brushGroup
         .style("pointer-events", "none"); // Allows map interaction when not brushing
 
-        brush.on("start", () => brushGroup.style("pointer-events", "all")); // Activate on brush
-        brush.on("end", () => brushGroup.style("pointer-events", "none"));  // Deactivate after brush
+        brush.on("start", () => {
+            brushGroup.style("pointer-events", "all");
+        }).on("end", (event) => {
+            if (!event.selection) return;
+            const [[x0, y0], [x1, y1]] = event.selection;
+            const bounds = [map.unproject([x0, y0]), map.unproject([x1, y1])];
+            if (!map.getLayer("simplified-noise-layer")) {
+                 console.warn("simplified-noise-layer is not yet loaded!");
+                return;
+                }       
+                selectParcels(bounds);
+        });
+
+function selectParcels(bounds) {
+    // Start with the simplified noise layer
+    const queryLayers = ['simplified-noise-layer'];
+
+    // Add dynamically generated parcel layers
+    for (let i = 0; i < currentBatchIndex; i++) {
+        queryLayers.push(`parcels-${i}`);
+    }
+
+    // Filter out layers that do not exist
+    const validLayers = queryLayers.filter(layer => map.getLayer(layer));
+
+    // ✅ Debugging: Check layers being queried
+    console.log("Available layers before selection:", map.getStyle().layers.map(l => l.id));
+    console.log("Querying layers:", validLayers);
+
+    if (validLayers.length === 0) {
+        console.warn("No valid layers found for selection.");
+        return;
+    }
+
+    // Query features in the selected bounding box
+    const selectedFeatures = map.queryRenderedFeatures(
+        [map.project(bounds[0]), map.project(bounds[1])],
+        { layers: validLayers }
+    );
+
+    if (selectedFeatures.length === 0) {
+        console.log("No parcels selected.");
+        return;
+    }
+
+    console.log("Selected Parcels:", selectedFeatures);
+    highlightSelectedParcels(selectedFeatures);
+}
+
+
+function highlightSelectedParcels(selectedFeatures) {
+    const selectedGeoJSON = {
+        type: "FeatureCollection",
+        features: selectedFeatures
+    };
+
+    if (map.getSource("selected-parcels")) {
+        map.getSource("selected-parcels").setData(selectedGeoJSON);
+    } else {
+        map.addSource("selected-parcels", {
+            type: "geojson",
+            data: selectedGeoJSON
+        });
+
+        map.addLayer({
+            id: "selected-parcels-layer",
+            type: "line",
+            source: "selected-parcels",
+            paint: {
+                "line-color": "#ff0000",
+                "line-width": 3
+            }
+        });
+    }
+}
 
     function brushed(event) {
         const selection = event.selection;
@@ -255,20 +328,46 @@
         console.log("Selected area:", nw, se);
     }
 
-    function brushEnded(event) {
-        if (!event.selection) {
-            console.log("Brush cleared");
-            return;
-        }
-
-        // Example: Update map source based on the brushed region
-        map.getSource('simplified-noise').setData({
-            "type": "FeatureCollection",
-            "features": [] // Replace with filtered features
-        });
-
-        console.log("Filtered noise map updated");
+function brushEnded(event) {
+    if (!event.selection) {
+        console.log("Brush cleared");
+        return;
     }
+
+    // Convert brush pixel coordinates to map coordinates
+    const [[x0, y0], [x1, y1]] = event.selection;
+    const sw = map.unproject([x0, y0]); // Bottom-left corner
+    const ne = map.unproject([x1, y1]); // Top-right corner
+
+    console.log("Brushed Area:", sw, ne);
+
+    // Query parcels within this bounding box
+    const selectedParcels = map.queryRenderedFeatures(
+        [map.project(sw), map.project(ne)],
+        { layers: ["simplified-noise-layer"] } // Ensure you query the correct layer
+    );
+
+    if (selectedParcels.length === 0) {
+        console.log("No parcels selected.");
+        return;
+    }
+
+    console.log("Selected Parcels:", selectedParcels);
+
+    // Highlight selected parcels on the map
+    highlightSelectedParcels(selectedParcels);
+
+    if (selectedParcels.length > 0) {
+    d3.select("#tooltip")
+        .style("left", `${event.selection[0][0] + 10}px`)
+        .style("top", `${event.selection[0][1] + 10}px`)
+        .style("opacity", 1)
+        .html(
+            `<strong>Selected Parcels:</strong><br>` +
+            selectedParcels.map(f => `ID: ${f.properties.id}, Noise: ${f.properties.noiseColor}`).join("<br>")
+        );
+}
+}
 
     function setupParcelClickHandler() {
         // Popup for displaying parcel information
