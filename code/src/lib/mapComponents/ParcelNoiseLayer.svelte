@@ -57,7 +57,6 @@
             map.on('mouseenter', 'simplified-noise-layer', () => {
                 map.getCanvas().style.cursor = 'pointer';
                 const coordinates = e.lngLat;
-                const noiseLevel = e.features[0].properties.noiseColor;
 
                 // Show tooltip
                 d3.select("#tooltip")
@@ -241,15 +240,17 @@
         brush.on("start", () => {
             brushGroup.style("pointer-events", "all");
         }).on("end", (event) => {
-            if (!event.selection) return;
-            const [[x0, y0], [x1, y1]] = event.selection;
-            const bounds = [map.unproject([x0, y0]), map.unproject([x1, y1])];
-            if (!map.getLayer("simplified-noise-layer")) {
-                 console.warn("simplified-noise-layer is not yet loaded!");
+            if (!event.selection) {
+                console.log("Brush cleared");
+                d3.select("#summary-tooltip").style("opacity", 0);
                 return;
-                }       
-                selectParcels(bounds);
-        });
+            }
+
+    const [[x0, y0], [x1, y1]] = event.selection;
+    const bounds = [map.unproject([x0, y0]), map.unproject([x1, y1])];
+
+    selectParcels(bounds);
+});
 
 function selectParcels(bounds) {
     // Start with the simplified noise layer
@@ -287,6 +288,93 @@ function selectParcels(bounds) {
     highlightSelectedParcels(selectedFeatures);
 }
 
+const noiseLevelMapping = {
+    "Pink": "60 - 70 dB",
+    "Orange": "50 - 55 dB",
+    "Yellow": "45 - 50 dB",
+    "Red": "55 - 60 dB"
+};
+
+const noiseMidpointMapping = {
+    "Pink": 65,   // Midpoint for 60 - 70 dB
+    "Orange": 52.5, // Midpoint for 50 - 55 dB
+    "Yellow": 47.5, // Midpoint for 45 - 50 dB
+    "Red": 57.5    // Midpoint for 55 - 60 dB
+};
+
+function calculateAverageNoiseLevel(selectedFeatures) {
+    let totalNoise = 0;
+    let count = 0;
+
+    // Loop through selected parcels and sum their noise levels
+    selectedFeatures.forEach(feature => {
+        const noiseColor = feature.properties.noiseColor;
+        if (noiseColor && noiseMidpointMapping[noiseColor] !== undefined) {
+            totalNoise += noiseMidpointMapping[noiseColor];
+            count++;
+        }
+    });
+
+    // Calculate and return the average noise level
+    return count > 0 ? totalNoise / count : 0; // Avoid division by zero
+}
+
+function calculateSummaryStatistics(selectedFeatures) {
+    if (!selectedFeatures.length) {
+        d3.select("#summary-tooltip").style("opacity", 0);
+        return;
+    }
+
+    let totalBuildingValue = 0, totalLandValue = 0, totalValue = 0, totalLotSize = 0;
+    let totalNoise = 0;
+    let count = 0;
+
+    selectedFeatures.forEach(feature => {
+        const props = feature.properties;
+        
+        const buildingValue = parseFloat(props.BLDG_VAL) || 0;
+        const landValue = parseFloat(props.LAND_VAL) || 0;
+        const totalParcelValue = parseFloat(props.TOTAL_VAL) || 0;
+        const lotSize = parseFloat(props.LOT_SIZE) || 0;
+        const noiseColor = props.noiseColor;
+
+        totalBuildingValue += buildingValue;
+        totalLandValue += landValue;
+        totalValue += totalParcelValue;
+        totalLotSize += lotSize;
+
+        // Sum the noise levels using the midpoint value for the noiseColor
+        if (noiseColor && noiseMidpointMapping[noiseColor] !== undefined) {
+            totalNoise += noiseMidpointMapping[noiseColor];
+        }
+        
+        count++;
+    });
+
+    if (count === 0) return;
+
+    const avgBuildingValue = totalBuildingValue / count;
+    const avgLandValue = totalLandValue / count;
+    const avgTotalValue = totalValue / count;
+    const avgLotSize = totalLotSize / count;
+
+    // Calculate the average noise level
+    const avgNoiseLevel = totalNoise / count;
+    const avgNoiseLabel = avgNoiseLevel > 0 ? `${avgNoiseLevel.toFixed(1)} dB` : 'No Data';
+
+    // Update the summary tooltip with all statistics
+    d3.select("#summary-tooltip")
+        .style("opacity", 1)
+        .html(`
+            <strong>Selected Parcels: ${count}</strong><br>
+            <strong>Avg Building Value:</strong> $${avgBuildingValue.toLocaleString()}<br>
+            <strong>Avg Land Value:</strong> $${avgLandValue.toLocaleString()}<br>
+            <strong>Avg Total Value:</strong> $${avgTotalValue.toLocaleString()}<br>
+            <strong>Avg Lot Size:</strong> ${avgLotSize.toLocaleString()} sq ft<br>
+            <strong>Avg Noise Level:</strong> ${avgNoiseLabel}
+        `);
+}
+
 
 function highlightSelectedParcels(selectedFeatures) {
     const selectedGeoJSON = {
@@ -312,6 +400,8 @@ function highlightSelectedParcels(selectedFeatures) {
             }
         });
     }
+        // Call function to calculate and display summary
+        calculateSummaryStatistics(selectedFeatures);
 }
 
     function brushed(event) {
@@ -411,12 +501,16 @@ function brushEnded(event) {
             const buildingValue = props.BLDG_VAL ? `$${Number(props.BLDG_VAL).toLocaleString()}` : 'N/A';
             const landValue = props.LAND_VAL ? `$${Number(props.LAND_VAL).toLocaleString()}` : 'N/A';
             const totalValue = props.TOTAL_VAL ? `$${Number(props.TOTAL_VAL).toLocaleString()}` : 'N/A';
-            
+
+
+            const noiseLevel = noiseLevelMapping[props.noiseColor] || "Unknown Noise Level"; // Lookup the label
+
             html += `<p><strong>Address:</strong> ${address}</p>`;
             html += `<p><strong>Building Value:</strong> ${buildingValue}</p>`;
             html += `<p><strong>Land Value:</strong> ${landValue}</p>`;
             html += `<p><strong>Total Value:</strong> ${totalValue}</p>`;
-            html += `<p><strong>Noise Level:</strong> ${props.noiseLevel || props.noiseColor || 'N/A'}</p>`;
+            html += `<p><strong>Noise Level:</strong> ${noiseLevel}</p>`;
+
             
             // Add more properties if available
             if (props.USE_CODE_SYMB) {
@@ -454,6 +548,18 @@ function brushEnded(event) {
         <p>Loaded: {loadedTowns} / {totalTowns}</p>
     {/if}
 </div>
+<div id="summary-tooltip" style="
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    display: inline-block;
+    opacity: 0;
+"></div>
 
 <style>
     .loading-status {
